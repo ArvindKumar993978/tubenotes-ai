@@ -13,3 +13,7 @@ env/
 
 # Streamlit Local Cache
 .streamlit/
+
+# Firebase & Database Files
+firebase_key.json
+*.db

@@ -9,6 +9,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+import db
 
 load_dotenv()
 
@@ -260,6 +261,10 @@ def generate_ai_content(transcript: str, api_key: str):
 with st.sidebar:
     st.markdown("### ⚡ System Status")
     st.success("🟢 AI Engine: Active (Gemini Flash)")
+    if db.is_firebase_active():
+        st.success("🔥 Database: Firebase Cloud Active")
+    else:
+        st.info("💾 Database: Storage Active")
     st.markdown("---")
     
     st.markdown("### 🎯 Capabilities")
@@ -271,6 +276,22 @@ with st.sidebar:
     """)
     st.markdown("---")
     
+    st.markdown("### 📚 Saved Library")
+    recent_items = db.get_recent_notes(limit=4)
+    if recent_items:
+        for idx, item in enumerate(recent_items):
+            short_id = item.get("video_id", "Lecture")
+            created = item.get("created_at", "")[:10]
+            if st.button(f"📖 {short_id} ({created})", key=f"hist_{idx}_{short_id}"):
+                st.session_state["notes"] = item.get("notes", "")
+                st.session_state["summary"] = item.get("summary", "")
+                st.session_state["quiz"] = item.get("quiz", "")
+                st.session_state["sample_url"] = item.get("url", "")
+                st.rerun()
+    else:
+        st.caption("No saved lectures yet.")
+
+    st.markdown("---")
     st.markdown("### 🧪 Quick Demos")
     st.caption("Click to try verified lectures instantly:")
     if st.button("🧪 Sample 1: Python Basics"):
@@ -342,6 +363,15 @@ if st.button("🚀 Generate Smart Study Notes"):
                     st.session_state["notes"] = notes_content or ai_output
                     st.session_state["summary"] = summary_content or "Summary ready."
                     st.session_state["quiz"] = quiz_content or "Quiz ready."
+
+                    # Save to database (Firebase or SQLite)
+                    db.save_note(
+                        video_id=video_id,
+                        url=youtube_url,
+                        notes=st.session_state["notes"],
+                        summary=st.session_state["summary"],
+                        quiz=st.session_state["quiz"]
+                    )
 
 # ----------------- DISPLAY OUTPUT IN TABS -----------------
 if "notes" in st.session_state:
