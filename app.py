@@ -203,12 +203,15 @@ def generate_ai_content(transcript: str, api_key: str):
     try:
         client = genai.Client(api_key=api_key)
         
+        # Gemini Flash supports huge 1M+ token context windows (~8+ hours of lecture)
+        clean_transcript = transcript[:300000] if len(transcript) > 300000 else transcript
+        
         prompt = f"""
         You are an expert academic tutor and technical note-taker.
         Analyze the following YouTube video transcript and generate structured study material.
         
         Transcript:
-        \"\"\"{transcript[:20000]}\"\"\"
+        \"\"\"{clean_transcript}\"\"\"
         
         Please provide the response strictly in the following 3 sections separated by exact markers:
 
