@@ -10,12 +10,28 @@ db_firestore = None
 try:
     import firebase_admin
     from firebase_admin import credentials, firestore
+    import streamlit as st
 
-    # Check for service account key file
+    cred = None
     cred_path = os.getenv("FIREBASE_KEY_PATH", "firebase_key.json")
+
+    # 1. Local file on disk
     if os.path.exists(cred_path):
+        cred = credentials.Certificate(cred_path)
+    # 2. Streamlit Cloud Secrets [firebase] section
+    elif hasattr(st, "secrets") and "firebase" in st.secrets:
+        cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    # 3. Streamlit Cloud Secrets string FIREBASE_KEY_JSON
+    elif hasattr(st, "secrets") and "FIREBASE_KEY_JSON" in st.secrets:
+        key_dict = json.loads(st.secrets["FIREBASE_KEY_JSON"])
+        cred = credentials.Certificate(key_dict)
+    # 4. Environment variable
+    elif os.getenv("FIREBASE_KEY_JSON"):
+        key_dict = json.loads(os.getenv("FIREBASE_KEY_JSON"))
+        cred = credentials.Certificate(key_dict)
+
+    if cred:
         if not firebase_admin._apps:
-            cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
         db_firestore = firestore.client()
         FIREBASE_AVAILABLE = True
